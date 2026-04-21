@@ -1,0 +1,22 @@
+---
+import '../styles/global.css';
+import { DashboardShell } from '@/components/react/DashboardShell';
+
+const user = Astro.locals.user;
+if (!user) {
+	return Astro.redirect('/');
+}
+---
+
+<html lang="pt-BR">
+	<head>
+		<meta charset="utf-8" />
+		<meta name="viewport" content="width=device-width" />
+		<link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+		<meta name="generator" content={Astro.generator} />
+		<title>Painel — Triskin NF</title>
+	</head>
+	<body class="antialiased">
+		<DashboardShell client:only="react" user={user} />
+	</body>
+</html>

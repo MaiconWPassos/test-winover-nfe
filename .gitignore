@@ -1,0 +1,9 @@
+.env
+triskin-nf/.env
+triskin-nf/node_modules
+triskin-nf/dist
+winover-api/node_modules
+winover-api/dist
+winover-api/coverage
+.idea
+.vscode

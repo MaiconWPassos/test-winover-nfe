@@ -1,0 +1,78 @@
+# Stack global: API NestJS + PostgreSQL (NF-e e demais serviços na rede `stack`).
+name: triskin-stack
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: ${DATABASE_USER:-nfe}
+      POSTGRES_PASSWORD: ${DATABASE_PASSWORD:-nfe}
+      POSTGRES_DB: ${DATABASE_NAME:-nfe}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - stack
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U "$$POSTGRES_USER" -d "$$POSTGRES_DB"']
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  winover-api:
+    build:
+      context: ./winover-api
+      dockerfile: Dockerfile
+    ports:
+      - '${NESTJS_API_PORT:-3000}:3000'
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      PORT: '3000'
+      JWT_SECRET: ${JWT_SECRET:-defina-uma-chave-segura-em-producao}
+      DATABASE_HOST: postgres
+      DATABASE_PORT: '5432'
+      DATABASE_USER: ${DATABASE_USER:-nfe}
+      DATABASE_PASSWORD: ${DATABASE_PASSWORD:-nfe}
+      DATABASE_NAME: ${DATABASE_NAME:-nfe}
+      NODE_ENV: production
+      TYPEORM_SYNC: '${TYPEORM_SYNC:-true}'
+      EMITENTE_CNPJ: ${EMITENTE_CNPJ:-19131243000197}
+      EMITENTE_IE: ${EMITENTE_IE:-111222333}
+      EMITENTE_UF: ${EMITENTE_UF:-SP}
+      SEFAZ_MOCK_DELAY_MS: ${SEFAZ_MOCK_DELAY_MS:-500}
+      SEFAZ_FORCE_REJECT: ${SEFAZ_FORCE_REJECT:-false}
+      SEFAZ_CALLBACK_MODE: ${SEFAZ_CALLBACK_MODE:-false}
+      WEBHOOK_SEFAZ_SECRET: ${WEBHOOK_SEFAZ_SECRET:-}
+      CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:${TRISKIN_WEB_PORT:-4321},http://127.0.0.1:${TRISKIN_WEB_PORT:-4321}}
+    networks:
+      - stack
+    restart: unless-stopped
+
+  triskin-web:
+    build:
+      context: ./triskin-nf
+      dockerfile: Dockerfile
+      args:
+        PUBLIC_API_URL: ${PUBLIC_API_URL:-http://localhost:3000}
+    ports:
+      - '${TRISKIN_WEB_PORT:-4321}:4321'
+    depends_on:
+      - winover-api
+    environment:
+      NODE_ENV: production
+      HOST: 0.0.0.0
+      PORT: '4321'
+      JWT_SECRET: ${JWT_SECRET:-defina-uma-chave-segura-em-producao}
+      API_INTERNAL_URL: http://winover-api:3000
+      PUBLIC_API_URL: ${PUBLIC_API_URL:-http://localhost:3000}
+    networks:
+      - stack
+    restart: unless-stopped
+
+networks:
+  stack:
+    driver: bridge
+
+volumes:
+  postgres_data:

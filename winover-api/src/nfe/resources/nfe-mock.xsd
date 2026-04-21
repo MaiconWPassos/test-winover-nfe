@@ -1,0 +1,89 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema" elementFormDefault="qualified">
+  <xs:element name="NFeLite">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element name="emit" type="emitType"/>
+        <xs:element name="dest" type="destType"/>
+        <xs:element name="det" type="detType" maxOccurs="unbounded"/>
+      </xs:sequence>
+      <xs:attribute name="version" type="xs:string" use="required"/>
+    </xs:complexType>
+  </xs:element>
+
+  <xs:complexType name="emitType">
+    <xs:sequence>
+      <xs:element name="CNPJ" type="cnpjType"/>
+      <xs:element name="IE" type="ieType"/>
+      <xs:element name="UF" type="ufType"/>
+    </xs:sequence>
+  </xs:complexType>
+
+  <xs:complexType name="destType">
+    <xs:sequence>
+      <xs:element name="CNPJ" type="cnpjType"/>
+      <xs:element name="IE" type="ieType"/>
+      <xs:element name="UF" type="ufType"/>
+    </xs:sequence>
+  </xs:complexType>
+
+  <xs:complexType name="detType">
+    <xs:sequence>
+      <xs:element name="prod" type="prodType"/>
+    </xs:sequence>
+    <xs:attribute name="nItem" type="xs:positiveInteger" use="required"/>
+  </xs:complexType>
+
+  <xs:complexType name="prodType">
+    <xs:sequence>
+      <xs:element name="cProd" type="xs:string"/>
+      <xs:element name="xProd" type="xs:string"/>
+      <xs:element name="NCM" type="ncmType"/>
+      <xs:element name="CFOP" type="cfopType"/>
+      <xs:element name="CST" type="cstType"/>
+      <xs:element name="qCom" type="xs:decimal"/>
+      <xs:element name="vUnCom" type="xs:decimal"/>
+    </xs:sequence>
+  </xs:complexType>
+
+  <xs:simpleType name="cnpjType">
+    <xs:restriction base="xs:string">
+      <xs:length value="14"/>
+      <xs:pattern value="\d{14}"/>
+    </xs:restriction>
+  </xs:simpleType>
+
+  <xs:simpleType name="ieType">
+    <xs:restriction base="xs:string">
+      <xs:minLength value="2"/>
+      <xs:maxLength value="20"/>
+    </xs:restriction>
+  </xs:simpleType>
+
+  <xs:simpleType name="ufType">
+    <xs:restriction base="xs:string">
+      <xs:length value="2"/>
+    </xs:restriction>
+  </xs:simpleType>
+
+  <xs:simpleType name="ncmType">
+    <xs:restriction base="xs:string">
+      <xs:length value="8"/>
+      <xs:pattern value="\d{8}"/>
+    </xs:restriction>
+  </xs:simpleType>
+
+  <xs:simpleType name="cfopType">
+    <xs:restriction base="xs:string">
+      <xs:length value="4"/>
+      <xs:pattern value="\d{4}"/>
+    </xs:restriction>
+  </xs:simpleType>
+
+  <xs:simpleType name="cstType">
+    <xs:restriction base="xs:string">
+      <xs:minLength value="2"/>
+      <xs:maxLength value="3"/>
+    </xs:restriction>
+  </xs:simpleType>
+</xs:schema>

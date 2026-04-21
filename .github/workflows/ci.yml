@@ -1,0 +1,55 @@
+name: CI
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+    branches: [main, master]
+
+defaults:
+  run:
+    working-directory: winover-api
+
+jobs:
+  build-test:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: nfe
+          POSTGRES_PASSWORD: nfe
+          POSTGRES_DB: nfe_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U nfe -d nfe_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+          cache-dependency-path: winover-api/package-lock.json
+      - name: Install
+        run: npm ci
+      - name: Lint
+        run: npm run lint
+      - name: Test
+        env:
+          DATABASE_HOST: localhost
+          DATABASE_PORT: '5432'
+          DATABASE_USER: nfe
+          DATABASE_PASSWORD: nfe
+          DATABASE_NAME: nfe_test
+          JWT_SECRET: ci-secret-ci-secret-ci-secret
+          EMITENTE_CNPJ: '19131243000197'
+          EMITENTE_IE: '111222333'
+          EMITENTE_UF: SP
+        run: npm test
+      - name: Build
+        run: npm run build
