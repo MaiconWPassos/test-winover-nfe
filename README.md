@@ -195,21 +195,9 @@ npm run build
 ```
 
 ---
-
-## Troubleshooting
-
-| Sintoma | Causa provável |
-|---------|----------------|
-| Front não chama a API | `PUBLIC_API_URL` incorreta ou apontando para hostname só interno do Compose. |
-| Build do front no Docker falhava com Tailwind/Vite | Projeto usa **PostCSS** para Tailwind 4; não reintroduzir `@tailwindcss/vite` no Astro sem validar o build. |
-| `npm run build` do front no Windows com erro Rollup `ERR_DLOPEN_FAILED` | Restrição de ambiente/antivírus em binário nativo do Rollup; testar em WSL/Linux ou usar o build Docker. |
-| Login redireciona mas `/dashboard` volta para `/` | `JWT_SECRET` do Astro diferente do da API, ou `API_INTERNAL_URL` incorreto no dev. |
-
----
-
 ## Referências rápidas
 
 - Detalhes de implementação da API: código em `winover-api/src/` (módulos `auth`, `nfe`, entidades, fila, ERP).  
-- Comandos locais mínimos da API: `winover-api/README.md` (ponteiro para este arquivo), se existir.
+- Comandos locais mínimos da API: `winover-api/README.md`, se existir.
 
 ---
