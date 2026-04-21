@@ -4,6 +4,12 @@ import { DeepPartial, Repository } from 'typeorm';
 import { NfeStatus } from '../entities/nfe-status.enum';
 import { Nfe } from '../entities/nfe.entity';
 
+/** IANA seguro para `timezone()` no PostgreSQL (evita injeção em SQL dinâmico). */
+function sanitizeStatsTimeZone(timeZone: string | undefined): string {
+  const t = (timeZone ?? 'America/Sao_Paulo').trim();
+  return /^[A-Za-z0-9_+-/]+$/.test(t) ? t : 'America/Sao_Paulo';
+}
+
 @Injectable()
 export class NfeRepository {
   constructor(
@@ -73,16 +79,24 @@ export class NfeRepository {
     return out;
   }
 
-  /** Contagem por dia (UTC) nos últimos `days` dias, inclusive hoje. */
-  async countByDayUtc(days: number): Promise<{ dia: string; quantidade: number }[]> {
-    const from = new Date();
-    from.setUTCHours(0, 0, 0, 0);
-    from.setUTCDate(from.getUTCDate() - (days - 1));
+  /**
+   * Contagem por dia civil no fuso `timeZone` (IANA), últimos `days` dias
+   * inclusive o dia atual nesse fuso — alinhado ao calendário local (ex.: Brasil).
+   */
+  async countByDay(
+    days: number,
+    timeZone?: string,
+  ): Promise<{ dia: string; quantidade: number }[]> {
+    const tz = sanitizeStatsTimeZone(timeZone);
+    const daySpan = Math.max(0, days - 1);
     const rows = await this.repo
       .createQueryBuilder('nfe')
-      .select(`to_char((nfe.created_at AT TIME ZONE 'UTC'), 'YYYY-MM-DD')`, 'dia')
+      .select(`to_char(timezone(:tz, nfe.created_at), 'YYYY-MM-DD')`, 'dia')
       .addSelect('COUNT(*)', 'cnt')
-      .where('nfe.created_at >= :from', { from })
+      .where(
+        `(timezone(:tz, nfe.created_at))::date >= (CAST(timezone(:tz, CURRENT_TIMESTAMP) AS date) - CAST(:daySpan AS integer))`,
+        { tz, daySpan },
+      )
       .groupBy('dia')
       .orderBy('dia', 'ASC')
       .getRawMany<{ dia: string; cnt: string }>();

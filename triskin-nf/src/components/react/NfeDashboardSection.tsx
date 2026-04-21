@@ -186,7 +186,7 @@ export function NfeDashboardSection() {
 							Notas emitidas (acumulado)
 						</CardTitle>
 						<CardDescription>
-							Total acumulado por dia (UTC), últimos 30 dias 
+							Total acumulado por dia (fuso America/Sao_Paulo), últimos 30 dias
 						</CardDescription>
 					</CardHeader>
 					<CardContent className="h-[300px] pt-2">

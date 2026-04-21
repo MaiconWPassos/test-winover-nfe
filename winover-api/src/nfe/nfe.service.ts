@@ -137,9 +137,11 @@ export class NfeService {
   }
 
   async getDashboardStats() {
+    const statsTz =
+      this.config.get<string>('STATS_TIMEZONE')?.trim() || 'America/Sao_Paulo';
     const [byStatus, byDay, total] = await Promise.all([
       this.nfeRepository.countByStatus(),
-      this.nfeRepository.countByDayUtc(30),
+      this.nfeRepository.countByDay(30, statsTz),
       this.nfeRepository.countTotal(),
     ]);
     let acumulado = 0;

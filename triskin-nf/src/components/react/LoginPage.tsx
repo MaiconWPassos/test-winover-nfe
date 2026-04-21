@@ -275,10 +275,7 @@ export function LoginPage() {
 					</form>
 				)}
 
-				<p className="mt-8 text-center text-xs text-zinc-600">
-					Ao cadastrar, você concorda em usar o ambiente conforme a política da
-					empresa.
-				</p>
+				
 			</div>
 		</div>
 	);
