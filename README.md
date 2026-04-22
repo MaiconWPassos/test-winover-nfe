@@ -195,10 +195,4 @@ npm test
 npm run build
 ```
 
----
-## Referências rápidas
 
-- Detalhes de implementação da API: código em `winover-api/src/` (módulos `auth`, `nfe`, entidades, fila, ERP).  
-- Comandos locais mínimos da API: `winover-api/README.md`, se existir.
-
----
