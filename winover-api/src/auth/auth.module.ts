@@ -6,6 +6,9 @@ import { UsersModule } from '../users/users.module';
 import { AuthController } from './auth.controller';
 import { AuthService } from './auth.service';
 import { JwtStrategy } from './strategies/jwt.strategy';
+import { IssueAccessTokenUseCase } from './application/issue-access-token.use-case';
+import { LoginUserUseCase } from './application/login-user.use-case';
+import { RegisterUserUseCase } from './application/register-user.use-case';
 
 @Module({
   imports: [
@@ -21,7 +24,13 @@ import { JwtStrategy } from './strategies/jwt.strategy';
     }),
   ],
   controllers: [AuthController],
-  providers: [AuthService, JwtStrategy],
+  providers: [
+    IssueAccessTokenUseCase,
+    RegisterUserUseCase,
+    LoginUserUseCase,
+    AuthService,
+    JwtStrategy,
+  ],
   exports: [AuthService, JwtModule],
 })
 export class AuthModule {}

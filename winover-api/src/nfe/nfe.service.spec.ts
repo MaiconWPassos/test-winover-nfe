@@ -6,17 +6,21 @@ import { NfeStatus } from './entities/nfe-status.enum';
 import { Nfe } from './entities/nfe.entity';
 import { NfeQueueService } from './nfe-queue.service';
 import { NfeService } from './nfe.service';
-import { NfeRepository } from './repository/nfe.repository';
 import { CreateNfeDto } from './dto/create-nfe.dto';
+import { NFE_REPOSITORY } from './domain/ports/nfe.repository.port';
+import type { INfeRepository } from './domain/ports/nfe.repository.port';
+import { CreateNfeUseCase } from './application/create-nfe.use-case';
+import { GetNfeStatusUseCase } from './application/get-nfe-status.use-case';
+import { GetAuthorizedNfeXmlUseCase } from './application/get-authorized-nfe-xml.use-case';
+import { ListNfeSummariesUseCase } from './application/list-nfe-summaries.use-case';
+import { GetNfeDashboardStatsUseCase } from './application/get-nfe-dashboard-stats.use-case';
 
 describe('NfeService', () => {
   let service: NfeService;
   let erp: jest.Mocked<
     Pick<ErpFicticioService, 'getClientePorCnpj' | 'getProdutoPorCodigo'>
   >;
-  let repo: jest.Mocked<
-    Pick<NfeRepository, 'nextNumero' | 'create' | 'save' | 'findById'>
-  >;
+  let repo: jest.Mocked<INfeRepository>;
   let queue: jest.Mocked<Pick<NfeQueueService, 'enqueueEmission'>>;
 
   beforeEach(async () => {
@@ -29,15 +33,25 @@ describe('NfeService', () => {
       create: jest.fn((x) => ({ ...x, id: 'nfe-1' }) as Nfe),
       save: jest.fn((x: Nfe) => Promise.resolve(x)),
       findById: jest.fn(),
+      countByStatus: jest.fn(),
+      countByDay: jest.fn(),
+      countTotal: jest.fn(),
+      findSummariesOrdered: jest.fn(),
     };
     queue = { enqueueEmission: jest.fn() };
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         NfeService,
+        CreateNfeUseCase,
+        GetNfeStatusUseCase,
+        GetAuthorizedNfeXmlUseCase,
+        ListNfeSummariesUseCase,
+        GetNfeDashboardStatsUseCase,
         {
           provide: ConfigService,
           useValue: {
+            get: (k: string) => (k === 'STATS_TIMEZONE' ? undefined : undefined),
             getOrThrow: (k: string) => {
               const map: Record<string, string> = {
                 EMITENTE_CNPJ: '19131243000197',
@@ -49,7 +63,7 @@ describe('NfeService', () => {
           },
         },
         { provide: ErpFicticioService, useValue: erp },
-        { provide: NfeRepository, useValue: repo },
+        { provide: NFE_REPOSITORY, useValue: repo },
         { provide: NfeQueueService, useValue: queue },
       ],
     }).compile();

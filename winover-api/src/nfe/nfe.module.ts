@@ -15,6 +15,12 @@ import { NfeController } from './nfe.controller';
 import { NfeService } from './nfe.service';
 import { NfeRepository } from './repository/nfe.repository';
 import { SefazMockService } from './sefaz/sefaz-mock.service';
+import { NFE_REPOSITORY } from './domain/ports/nfe.repository.port';
+import { CreateNfeUseCase } from './application/create-nfe.use-case';
+import { GetAuthorizedNfeXmlUseCase } from './application/get-authorized-nfe-xml.use-case';
+import { GetNfeDashboardStatsUseCase } from './application/get-nfe-dashboard-stats.use-case';
+import { GetNfeStatusUseCase } from './application/get-nfe-status.use-case';
+import { ListNfeSummariesUseCase } from './application/list-nfe-summaries.use-case';
 
 @Module({
   imports: [
@@ -26,6 +32,12 @@ import { SefazMockService } from './sefaz/sefaz-mock.service';
   controllers: [NfeController],
   providers: [
     NfeRepository,
+    { provide: NFE_REPOSITORY, useExisting: NfeRepository },
+    CreateNfeUseCase,
+    GetNfeStatusUseCase,
+    GetAuthorizedNfeXmlUseCase,
+    ListNfeSummariesUseCase,
+    GetNfeDashboardStatsUseCase,
     NfeService,
     ErpFicticioService,
     NfeXmlBuilder,

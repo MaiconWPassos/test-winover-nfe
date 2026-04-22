@@ -3,6 +3,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { DeepPartial, Repository } from 'typeorm';
 import { NfeStatus } from '../entities/nfe-status.enum';
 import { Nfe } from '../entities/nfe.entity';
+import type { INfeRepository } from '../domain/ports/nfe.repository.port';
 
 /** IANA seguro para `timezone()` no PostgreSQL (evita injeção em SQL dinâmico). */
 function sanitizeStatsTimeZone(timeZone: string | undefined): string {
@@ -11,7 +12,7 @@ function sanitizeStatsTimeZone(timeZone: string | undefined): string {
 }
 
 @Injectable()
-export class NfeRepository {
+export class NfeRepository implements INfeRepository {
   constructor(
     @InjectRepository(Nfe)
     private readonly repo: Repository<Nfe>,

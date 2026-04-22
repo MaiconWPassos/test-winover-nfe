@@ -16,7 +16,7 @@ O foco do desafio é demonstrar **arquitetura limpa**, **persistência**, **segu
 | **Qualidade de dados** | Montagem de XML e validação contra **XSD** antes de simular envio à SEFAZ. |
 | **API produto** | DTOs validados, erros HTTP consistentes, **Swagger** em `/docs`. |
 | **Front** | App moderno (Astro 6, React 19) integrado à API via URL configurável (`PUBLIC_API_URL`). |
-| **DevOps** | `docker compose` sobe Postgres + API + site (**Astro SSR** em Node); CI roda lint, testes e build da API. |
+| **DevOps** | `docker compose` sobe Postgres + API + site (**Astro SSR** em Node); CI na raiz roda lint, testes e build só do **`winover-api`**. |
 
 ---
 
@@ -76,7 +76,7 @@ flowchart LR
 | `POST` | `/auth/login` | Não | Login; retorna `access_token` |
 | `GET` | `/auth/me` | JWT | Dados do usuário autenticado |
 | `GET` | `/nfe` | JWT | Lista NF-e (resumo; `?limit=` até 200) |
-| `GET` | `/nfe/stats` | JWT | Totais, contagem por status e série por dia (30 dias UTC) para gráficos |
+| `GET` | `/nfe/stats` | JWT | Totais, contagem por status e série **por dia civil** (últimos 30 dias no fuso configurável; padrão **`America/Sao_Paulo`**, env `STATS_TIMEZONE` na API) |
 | `POST` | `/nfe` | JWT | Inicia emissão (fila + mock SEFAZ) |
 | `GET` | `/nfe/:id` | JWT | Status da NF-e |
 | `GET` | `/nfe/:id/xml` | JWT | XML da nota **autorizada** |
@@ -114,6 +114,7 @@ Copie `.env.example` → `.env` na raiz. Resumo:
 | `EMITENTE_*` | CNPJ/IE/UF do emitente no XML |
 | `SEFAZ_MOCK_DELAY_MS` | Atraso artificial do mock |
 | `SEFAZ_FORCE_REJECT` | Se `true`, simula rejeição pela SEFAZ |
+| `STATS_TIMEZONE` | (Opcional, **API**) Fuso IANA para `/nfe/stats` agrupar por dia civil (ex.: `America/Fortaleza`). No `docker compose`, o serviço `winover-api` usa `${STATS_TIMEZONE:-America/Sao_Paulo}` a partir do `.env` da raiz. Local: `winover-api/.env.example`. |
 | `PUBLIC_API_URL` | URL da API **como o navegador acessa** (ex.: `http://localhost:3000`) |
 
 **Importante:** `PUBLIC_API_URL` deve ser acessível **do browser**. Não use `http://winover-api:3000` nesse campo — esse hostname é só para `API_INTERNAL_URL` no container do site.
@@ -126,7 +127,7 @@ Copie `.env.example` → `.env` na raiz. Resumo:
 - JWT (`passport-jwt`), bcrypt, `class-validator` / `class-transformer`  
 - NF-e: mock SEFAZ, XML + validação XSD (`xmllint`; imagem Docker com `libxml2-utils`)  
 - Swagger em `/docs`, logs com `nestjs-pino`  
-- Testes Jest; CI: `.github/workflows/ci.yml` (Postgres de serviço + lint + test + build)
+- Testes Jest; CI: `.github/workflows/ci.yml` (Postgres de serviço + lint + test + build **apenas em `winover-api/`**)
 
 ---
 

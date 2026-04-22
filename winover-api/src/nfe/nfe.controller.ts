@@ -36,7 +36,8 @@ export class NfeController {
 
   @Get('stats')
   @ApiOperation({
-    summary: 'Resumo para gráficos (por status e por dia, últimos 30 dias UTC)',
+    summary:
+      'Resumo para gráficos (por status e por dia civil, últimos 30 dias no fuso STATS_TIMEZONE)',
   })
   @ApiUnauthorizedResponse({ description: 'JWT ausente, expirado ou inválido' })
   @ApiResponse({ status: 200, description: 'Totais e séries agregadas' })
