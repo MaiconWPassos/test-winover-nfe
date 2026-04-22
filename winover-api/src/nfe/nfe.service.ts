@@ -20,23 +20,23 @@ export class NfeService {
     private readonly nfeDashboardStats: GetNfeDashboardStatsUseCase,
   ) {}
 
-  create(dto: CreateNfeDto) {
-    return this.createNfe.execute(dto);
+  create(userId: string, dto: CreateNfeDto) {
+    return this.createNfe.execute(userId, dto);
   }
 
-  getStatus(id: string) {
-    return this.getNfeStatus.execute(id);
+  getStatus(userId: string, id: string) {
+    return this.getNfeStatus.execute(userId, id);
   }
 
-  getAuthorizedXml(id: string) {
-    return this.authorizedNfeXml.execute(id);
+  getAuthorizedXml(userId: string, id: string) {
+    return this.authorizedNfeXml.execute(userId, id);
   }
 
-  listSummaries(limit: number) {
-    return this.listNfeSummaries.execute(limit);
+  listSummaries(userId: string, limit: number) {
+    return this.listNfeSummaries.execute(userId, limit);
   }
 
-  getDashboardStats() {
-    return this.nfeDashboardStats.execute();
+  getDashboardStats(userId: string) {
+    return this.nfeDashboardStats.execute(userId);
   }
 }

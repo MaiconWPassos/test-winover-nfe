@@ -11,8 +11,8 @@ export class GetAuthorizedNfeXmlUseCase {
     @Inject(NFE_REPOSITORY) private readonly nfeRepository: INfeRepository,
   ) {}
 
-  async execute(id: string): Promise<string> {
-    const nfe = await this.nfeRepository.findById(id);
+  async execute(userId: string, id: string): Promise<string> {
+    const nfe = await this.nfeRepository.findByIdForUser(id, userId);
     if (!nfe) {
       throw new NotFoundException('NF-e não encontrada');
     }

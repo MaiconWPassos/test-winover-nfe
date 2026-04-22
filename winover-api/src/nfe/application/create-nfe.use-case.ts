@@ -22,7 +22,7 @@ export class CreateNfeUseCase {
     private readonly queue: NfeQueueService,
   ) {}
 
-  async execute(dto: CreateNfeDto) {
+  async execute(userId: string, dto: CreateNfeDto) {
     const customer = await this.erp.getClientePorCnpj(dto.cnpjDestinatario);
     assertDestinatarioMatchesErpCliente(dto, customer);
 
@@ -54,6 +54,7 @@ export class CreateNfeUseCase {
     const nfe = this.nfeRepository.create({
       numero,
       status: NfeStatus.PROCESSING,
+      userId,
       customerId: customer.id,
       emitCnpj,
       emitIe,

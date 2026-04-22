@@ -65,12 +65,12 @@ export class Nfe {
   @Column({ name: 'customer_id', type: 'uuid' })
   customerId: string;
 
-  @ManyToOne(() => User, { eager: false })
+  @ManyToOne(() => User, { eager: false, nullable: true })
   @JoinColumn({ name: 'user_id' })
-  user: User;
+  user: User | null;
 
-  @Column({ name: 'user_id', type: 'uuid' })
-  userId: string;
+  @Column({ name: 'user_id', type: 'uuid', nullable: true })
+  userId: string | null;
 
   @OneToMany(() => NfeItem, (i) => i.nfe, { cascade: true, eager: true })
   items: NfeItem[];

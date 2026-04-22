@@ -6,6 +6,7 @@ import {
   ParseUUIDPipe,
   Post,
   Query,
+  Req,
   Res,
   UseGuards,
 } from '@nestjs/common';
@@ -21,10 +22,12 @@ import {
   ApiTags,
   ApiUnauthorizedResponse,
 } from '@nestjs/swagger';
-import type { Response } from 'express';
+import type { Request, Response } from 'express';
 import { CreateNfeDto } from './dto/create-nfe.dto';
 import { ListNfeQueryDto } from './dto/list-nfe-query.dto';
 import { NfeService } from './nfe.service';
+
+type AuthedRequest = Request & { user: { id: string; email: string } };
 
 @ApiTags('nfe')
 @ApiBearerAuth('JWT-auth')
@@ -41,16 +44,16 @@ export class NfeController {
   })
   @ApiUnauthorizedResponse({ description: 'JWT ausente, expirado ou inválido' })
   @ApiResponse({ status: 200, description: 'Totais e séries agregadas' })
-  getStats() {
-    return this.nfeService.getDashboardStats();
+  getStats(@Req() req: AuthedRequest) {
+    return this.nfeService.getDashboardStats(req.user.id);
   }
 
   @Get()
   @ApiOperation({ summary: 'Lista NF-e emitidas (mais recentes primeiro)' })
   @ApiUnauthorizedResponse({ description: 'JWT ausente, expirado ou inválido' })
   @ApiResponse({ status: 200, description: 'Lista resumida' })
-  list(@Query() query: ListNfeQueryDto) {
-    return this.nfeService.listSummaries(query.limit ?? 50);
+  list(@Req() req: AuthedRequest, @Query() query: ListNfeQueryDto) {
+    return this.nfeService.listSummaries(req.user.id, query.limit ?? 50);
   }
 
   @Post()
@@ -70,8 +73,8 @@ export class NfeController {
       },
     },
   })
-  create(@Body() dto: CreateNfeDto) {
-    return this.nfeService.create(dto);
+  create(@Req() req: AuthedRequest, @Body() dto: CreateNfeDto) {
+    return this.nfeService.create(req.user.id, dto);
   }
 
   @Get(':id/xml')
@@ -86,8 +89,12 @@ export class NfeController {
   })
   @ApiProduces('application/xml')
   @ApiResponse({ status: 200, description: 'XML autorizado' })
-  async getXml(@Param('id', ParseUUIDPipe) id: string, @Res() res: Response) {
-    const xml = await this.nfeService.getAuthorizedXml(id);
+  async getXml(
+    @Req() req: AuthedRequest,
+    @Param('id', ParseUUIDPipe) id: string,
+    @Res() res: Response,
+  ) {
+    const xml = await this.nfeService.getAuthorizedXml(req.user.id, id);
     res.setHeader('Content-Type', 'application/xml; charset=utf-8');
     res.send(xml);
   }
@@ -114,7 +121,10 @@ export class NfeController {
     example: '3fa85f64-5717-4562-b3fc-2c963f66afa6',
     description: 'ID retornado em POST /nfe',
   })
-  getStatus(@Param('id', ParseUUIDPipe) id: string) {
-    return this.nfeService.getStatus(id);
+  getStatus(
+    @Req() req: AuthedRequest,
+    @Param('id', ParseUUIDPipe) id: string,
+  ) {
+    return this.nfeService.getStatus(req.user.id, id);
   }
 }

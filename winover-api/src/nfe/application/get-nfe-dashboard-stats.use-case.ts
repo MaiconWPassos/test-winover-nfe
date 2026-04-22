@@ -13,13 +13,13 @@ export class GetNfeDashboardStatsUseCase {
     @Inject(NFE_REPOSITORY) private readonly nfeRepository: INfeRepository,
   ) {}
 
-  async execute() {
+  async execute(userId: string) {
     const statsTz =
       this.config.get<string>('STATS_TIMEZONE')?.trim() || 'America/Sao_Paulo';
     const [byStatus, byDay, total] = await Promise.all([
-      this.nfeRepository.countByStatus(),
-      this.nfeRepository.countByDay(30, statsTz),
-      this.nfeRepository.countTotal(),
+      this.nfeRepository.countByStatusForUser(userId),
+      this.nfeRepository.countByDay(userId, 30, statsTz),
+      this.nfeRepository.countTotalForUser(userId),
     ]);
     return toDashboardStatsView({ byStatus, byDay, total });
   }

@@ -33,6 +33,13 @@ export class NfeRepository implements INfeRepository {
     });
   }
 
+  findByIdForUser(id: string, userId: string): Promise<Nfe | null> {
+    return this.repo.findOne({
+      where: { id, userId },
+      relations: { customer: true, items: true },
+    });
+  }
+
   async nextNumero(): Promise<number> {
     const row = await this.repo
       .createQueryBuilder('nfe')
@@ -42,7 +49,7 @@ export class NfeRepository implements INfeRepository {
   }
 
   /** Lista resumida sem `authorized_xml` (payload grande). */
-  async findSummariesOrdered(limit: number): Promise<Nfe[]> {
+  async findSummariesOrderedForUser(userId: string, limit: number): Promise<Nfe[]> {
     return this.repo
       .createQueryBuilder('nfe')
       .leftJoinAndSelect('nfe.customer', 'customer')
@@ -57,16 +64,18 @@ export class NfeRepository implements INfeRepository {
         'customer.cnpj',
         'customer.razaoSocial',
       ])
+      .where('nfe.userId = :userId', { userId })
       .orderBy('nfe.createdAt', 'DESC')
       .take(limit)
       .getMany();
   }
 
-  async countByStatus(): Promise<Record<NfeStatus, number>> {
+  async countByStatusForUser(userId: string): Promise<Record<NfeStatus, number>> {
     const rows = await this.repo
       .createQueryBuilder('nfe')
       .select('nfe.status', 'status')
       .addSelect('COUNT(*)', 'cnt')
+      .where('nfe.userId = :userId', { userId })
       .groupBy('nfe.status')
       .getRawMany<{ status: NfeStatus; cnt: string }>();
     const out: Record<NfeStatus, number> = {
@@ -85,6 +94,7 @@ export class NfeRepository implements INfeRepository {
    * inclusive o dia atual nesse fuso — alinhado ao calendário local (ex.: Brasil).
    */
   async countByDay(
+    userId: string,
     days: number,
     timeZone?: string,
   ): Promise<{ dia: string; quantidade: number }[]> {
@@ -95,8 +105,8 @@ export class NfeRepository implements INfeRepository {
       .select(`to_char(timezone(:tz, nfe.created_at), 'YYYY-MM-DD')`, 'dia')
       .addSelect('COUNT(*)', 'cnt')
       .where(
-        `(timezone(:tz, nfe.created_at))::date >= (CAST(timezone(:tz, CURRENT_TIMESTAMP) AS date) - CAST(:daySpan AS integer))`,
-        { tz, daySpan },
+        `nfe.user_id = :userId AND (timezone(:tz, nfe.created_at))::date >= (CAST(timezone(:tz, CURRENT_TIMESTAMP) AS date) - CAST(:daySpan AS integer))`,
+        { tz, daySpan, userId },
       )
       .groupBy('dia')
       .orderBy('dia', 'ASC')
@@ -104,7 +114,10 @@ export class NfeRepository implements INfeRepository {
     return rows.map((r) => ({ dia: r.dia, quantidade: Number(r.cnt) }));
   }
 
-  async countTotal(): Promise<number> {
-    return this.repo.createQueryBuilder('nfe').getCount();
+  async countTotalForUser(userId: string): Promise<number> {
+    return this.repo
+      .createQueryBuilder('nfe')
+      .where('nfe.userId = :userId', { userId })
+      .getCount();
   }
 }

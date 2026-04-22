@@ -11,9 +11,9 @@ export class ListNfeSummariesUseCase {
     @Inject(NFE_REPOSITORY) private readonly nfeRepository: INfeRepository,
   ) {}
 
-  async execute(limit: number) {
+  async execute(userId: string, limit: number) {
     const take = Math.min(200, Math.max(1, limit));
-    const rows = await this.nfeRepository.findSummariesOrdered(take);
+    const rows = await this.nfeRepository.findSummariesOrderedForUser(userId, take);
     return rows.map((n) => toNfeListSummaryView(n));
   }
 }

@@ -35,10 +35,11 @@ describe('NfeService', () => {
       create: jest.fn((x) => ({ ...x, id: 'nfe-1' }) as Nfe),
       save: jest.fn((x: Nfe) => Promise.resolve(x)),
       findById: jest.fn(),
-      countByStatus: jest.fn(),
+      findByIdForUser: jest.fn(),
+      countByStatusForUser: jest.fn(),
       countByDay: jest.fn(),
-      countTotal: jest.fn(),
-      findSummariesOrdered: jest.fn(),
+      countTotalForUser: jest.fn(),
+      findSummariesOrderedForUser: jest.fn(),
     };
     queue = { enqueueEmission: jest.fn() };
 
@@ -105,7 +106,7 @@ describe('NfeService', () => {
       ],
     };
 
-    const res = await service.create(dto);
+    const res = await service.create('u1', dto);
     expect(res.numero).toBe(42);
     expect(res.status).toBe('processamento');
     expect(queue.enqueueEmission).toHaveBeenCalledWith('nfe-1');
@@ -121,17 +122,17 @@ describe('NfeService', () => {
     });
 
     await expect(
-      service.create({
+      service.create('u1', {
         cnpjDestinatario: '11222333000181',
         ieDestinatario: '123',
         ufDestinatario: 'SP',
         itens: [],
-      }),
+      } as CreateNfeDto),
     ).rejects.toBeInstanceOf(BadRequestException);
   });
 
   it('retorna status da NF-e', async () => {
-    repo.findById.mockResolvedValue({
+    repo.findByIdForUser.mockResolvedValue({
       id: 'x',
       numero: 1,
       status: NfeStatus.AUTHORIZED,
@@ -141,7 +142,7 @@ describe('NfeService', () => {
       accessKey: '1'.repeat(44),
     } as Nfe);
 
-    const s = await service.getStatus('x');
+    const s = await service.getStatus('u1', 'x');
     expect(s.status).toBe('autorizada');
     expect(s.protocolo).toBe('PROT1');
   });
