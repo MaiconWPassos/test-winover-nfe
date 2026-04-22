@@ -12,17 +12,8 @@ import {
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { cn } from '@/lib/utils';
-
-function parseApiError(text: string): string {
-	try {
-		const j = JSON.parse(text) as { message?: string | string[] };
-		if (Array.isArray(j.message)) return j.message.join(', ');
-		if (typeof j.message === 'string') return j.message;
-	} catch {
-		if (text) return text.slice(0, 280);
-	}
-	return 'Não foi possível emitir a NF-e.';
-}
+import { parseNestApiError } from '@/lib/parse-nest-api-error';
+import { buildCreateNfePayload } from '@/features/nfe/lib/build-create-nfe-payload';
 
 type ItemForm = {
 	key: string;
@@ -89,47 +80,12 @@ export function EmitNfeModal({ open, onOpenChange, onSuccess }: EmitNfeModalProp
 
 	const handleSubmit = useCallback(async () => {
 		setFormError(null);
-		const uf = ufDestinatario.trim().toUpperCase();
-		if (uf.length !== 2) {
-			setFormError('UF deve ter 2 letras.');
+		const built = buildCreateNfePayload(cnpjDestinatario, ieDestinatario, ufDestinatario, itens);
+		if (!built.ok) {
+			setFormError(built.error);
 			return;
 		}
-
-		const parsedItens = [];
-		for (const row of itens) {
-			const q = Number(String(row.quantidade).replace(',', '.'));
-			const vu = Number(String(row.valorUnitario).replace(',', '.'));
-			if (!Number.isFinite(q) || q <= 0) {
-				setFormError('Quantidade inválida em um dos itens.');
-				return;
-			}
-			if (!Number.isFinite(vu) || vu <= 0) {
-				setFormError('Valor unitário inválido em um dos itens.');
-				return;
-			}
-			if (!/^\d{4}$/.test(row.cfop.trim())) {
-				setFormError('CFOP deve ter 4 dígitos em cada item.');
-				return;
-			}
-			if (!/^\d{2,3}$/.test(row.cst.trim())) {
-				setFormError('CST deve ter 2 ou 3 dígitos em cada item.');
-				return;
-			}
-			parsedItens.push({
-				codigoProduto: row.codigoProduto.trim(),
-				quantidade: q,
-				valorUnitario: vu,
-				cfop: row.cfop.trim(),
-				cst: row.cst.trim(),
-			});
-		}
-
-		const payload = {
-			cnpjDestinatario: cnpjDestinatario.replace(/\D/g, ''),
-			ieDestinatario: ieDestinatario.trim(),
-			ufDestinatario: uf,
-			itens: parsedItens,
-		};
+		const payload = built.payload;
 
 		setBusy(true);
 		try {
@@ -145,7 +101,7 @@ export function EmitNfeModal({ open, onOpenChange, onSuccess }: EmitNfeModalProp
 				return;
 			}
 			if (!res.ok) {
-				setFormError(parseApiError(text));
+				setFormError(parseNestApiError(text, 'Não foi possível emitir a NF-e.'));
 				return;
 			}
 			onOpenChange(false);

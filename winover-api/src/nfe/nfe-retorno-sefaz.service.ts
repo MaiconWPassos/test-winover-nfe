@@ -47,7 +47,7 @@ export class NfeRetornoSefazService {
 
     nfe.protocolNumber = protocol;
     nfe.authorizedXml = this.xmlBuilder.wrapAuthorizedPayload(
-      nfe.accessKey!,
+      nfe.accessKey,
       nfeLite,
       protocol,
     );

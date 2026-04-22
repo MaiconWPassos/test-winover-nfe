@@ -31,10 +31,7 @@ export function toNfeStatusApiView(
 }
 
 export function toNfeListSummaryView(
-  nfe: Pick<
-    Nfe,
-    'id' | 'numero' | 'status' | 'createdAt' | 'accessKey'
-  > & {
+  nfe: Pick<Nfe, 'id' | 'numero' | 'status' | 'createdAt' | 'accessKey'> & {
     customer: { cnpj: string; razaoSocial: string };
   },
 ) {

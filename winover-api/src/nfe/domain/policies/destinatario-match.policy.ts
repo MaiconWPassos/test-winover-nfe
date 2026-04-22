@@ -26,16 +26,11 @@ export function assertDestinatarioMatchesErpCliente(
     );
   }
   if (
-    dto.ieDestinatario.trim().toUpperCase() !==
-    customer.ie.trim().toUpperCase()
+    dto.ieDestinatario.trim().toUpperCase() !== customer.ie.trim().toUpperCase()
   ) {
-    throw new BadRequestException(
-      'IE destinatário divergente do cadastro ERP',
-    );
+    throw new BadRequestException('IE destinatário divergente do cadastro ERP');
   }
   if (dto.ufDestinatario.toUpperCase() !== customer.uf.toUpperCase()) {
-    throw new BadRequestException(
-      'UF destinatária divergente do cadastro ERP',
-    );
+    throw new BadRequestException('UF destinatária divergente do cadastro ERP');
   }
 }

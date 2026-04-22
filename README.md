@@ -49,8 +49,8 @@ flowchart LR
 
 | Pasta | Descrição |
 |--------|------------|
-| `winover-api/` | API REST: auth JWT, NF-e, ERP fictício (clientes/produtos), fila, Swagger `/docs` |
-| `triskin-nf/` | Astro SSR + React 19 + Tailwind 4; login com **cookie HttpOnly** + **middleware** (JWT); Zustand só para UI |
+| `winover-api/` | API REST: auth JWT, NF-e, ERP fictício (clientes/produtos), fila, Swagger `/docs` — camadas **`domain/`** (portas, políticas, mappers), **`application/`** (casos de uso) e **`infrastructure/`** (persistência, XML, SEFAZ mock) |
+| `triskin-nf/` | Astro SSR + React 19 + Tailwind 4; login com **cookie HttpOnly** + **middleware** (JWT); Zustand só para UI; feature **`src/features/nfe/`** (hooks, componentes de dashboard, validação pura de payload) |
 | `docker-compose.yml` | Orquestra `postgres`, `winover-api`, `triskin-web` |
 | `.env.example` | Modelo de variáveis para Compose e desenvolvimento |
 

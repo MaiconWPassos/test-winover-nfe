@@ -1,15 +1,5 @@
 import { useCallback, useState, type FormEvent } from 'react';
-
-function parseApiError(text: string): string {
-	try {
-		const j = JSON.parse(text) as { message?: string | string[] };
-		if (Array.isArray(j.message)) return j.message.join(', ');
-		if (typeof j.message === 'string') return j.message;
-	} catch {
-		if (text) return text.slice(0, 240);
-	}
-	return 'Algo deu errado. Tente novamente.';
-}
+import { parseNestApiError } from '@/lib/parse-nest-api-error';
 
 type Tab = 'login' | 'register';
 
@@ -38,7 +28,7 @@ export function LoginPage() {
 				});
 				const text = await res.text();
 				if (!res.ok) {
-					throw new Error(parseApiError(text));
+					throw new Error(parseNestApiError(text, 'Algo deu errado. Tente novamente.'));
 				}
 				window.location.assign('/dashboard');
 			} catch (err) {
@@ -77,7 +67,7 @@ export function LoginPage() {
 				});
 				const text = await res.text();
 				if (!res.ok) {
-					throw new Error(parseApiError(text));
+					throw new Error(parseNestApiError(text, 'Algo deu errado. Tente novamente.'));
 				}
 				window.location.assign('/dashboard');
 			} catch (err) {

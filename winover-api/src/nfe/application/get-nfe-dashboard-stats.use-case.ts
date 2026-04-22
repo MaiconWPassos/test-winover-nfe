@@ -1,6 +1,5 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { NfeStatus } from '../entities/nfe-status.enum';
 import {
   NFE_REPOSITORY,
   type INfeRepository,

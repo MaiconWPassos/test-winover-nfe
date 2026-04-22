@@ -7,8 +7,10 @@ import { Nfe } from './entities/nfe.entity';
 import { NfeQueueService } from './nfe-queue.service';
 import { NfeService } from './nfe.service';
 import { CreateNfeDto } from './dto/create-nfe.dto';
-import { NFE_REPOSITORY } from './domain/ports/nfe.repository.port';
-import type { INfeRepository } from './domain/ports/nfe.repository.port';
+import {
+  NFE_REPOSITORY,
+  type INfeRepository,
+} from './domain/ports/nfe.repository.port';
 import { CreateNfeUseCase } from './application/create-nfe.use-case';
 import { GetNfeStatusUseCase } from './application/get-nfe-status.use-case';
 import { GetAuthorizedNfeXmlUseCase } from './application/get-authorized-nfe-xml.use-case';
@@ -51,7 +53,8 @@ describe('NfeService', () => {
         {
           provide: ConfigService,
           useValue: {
-            get: (k: string) => (k === 'STATS_TIMEZONE' ? undefined : undefined),
+            get: (k: string) =>
+              k === 'STATS_TIMEZONE' ? undefined : undefined,
             getOrThrow: (k: string) => {
               const map: Record<string, string> = {
                 EMITENTE_CNPJ: '19131243000197',

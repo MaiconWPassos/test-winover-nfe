@@ -32,10 +32,7 @@ function corsOptionsFromEnv(): CorsOptions {
 
   if (process.env.NODE_ENV === 'production') {
     return {
-      origin: [
-        'http://localhost:4321',
-        'http://127.0.0.1:4321',
-      ],
+      origin: ['http://localhost:4321', 'http://127.0.0.1:4321'],
       methods: ['GET', 'HEAD', 'PUT', 'PATCH', 'POST', 'DELETE', 'OPTIONS'],
       allowedHeaders: [
         'Content-Type',
