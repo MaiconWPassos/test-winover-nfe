@@ -1,5 +1,6 @@
 import { useCallback, useState } from 'react';
 import { Plus, Trash2 } from 'lucide-react';
+import { Controller, useFieldArray, useForm } from 'react-hook-form';
 import { Button } from '@/components/ui/button';
 import {
 	Dialog,
@@ -16,7 +17,6 @@ import { parseNestApiError } from '@/lib/parse-nest-api-error';
 import { buildCreateNfePayload } from '@/features/nfe/lib/build-create-nfe-payload';
 
 type ItemForm = {
-	key: string;
 	codigoProduto: string;
 	quantidade: string;
 	valorUnitario: string;
@@ -26,7 +26,6 @@ type ItemForm = {
 
 function newItem(): ItemForm {
 	return {
-		key: crypto.randomUUID(),
 		codigoProduto: 'P001',
 		quantidade: '1',
 		valorUnitario: '100.50',
@@ -38,6 +37,62 @@ function newItem(): ItemForm {
 const SEED_CNPJ = '11222333000181';
 const SEED_IE = '123456789011';
 const SEED_UF = 'SP';
+const CNPJ_MASKED_LENGTH = 18;
+
+type EmitNfeFormValues = {
+	cnpjDestinatario: string;
+	ieDestinatario: string;
+	ufDestinatario: string;
+	itens: ItemForm[];
+};
+
+function toDigits(value: string): string {
+	return value.replace(/\D/g, '');
+}
+
+function formatCnpj(value: string): string {
+	const digits = toDigits(value).slice(0, 14);
+	if (digits.length <= 2) return digits;
+	if (digits.length <= 5) return `${digits.slice(0, 2)}.${digits.slice(2)}`;
+	if (digits.length <= 8) {
+		return `${digits.slice(0, 2)}.${digits.slice(2, 5)}.${digits.slice(5)}`;
+	}
+	if (digits.length <= 12) {
+		return `${digits.slice(0, 2)}.${digits.slice(2, 5)}.${digits.slice(5, 8)}/${digits.slice(8)}`;
+	}
+	return `${digits.slice(0, 2)}.${digits.slice(2, 5)}.${digits.slice(5, 8)}/${digits.slice(8, 12)}-${digits.slice(12)}`;
+}
+
+function isValidCnpj(value: string): boolean {
+	const digits = toDigits(value);
+	if (digits.length !== 14 || /^(\d)\1{13}$/.test(digits)) {
+		return false;
+	}
+
+	const calc = (base: string, factors: number[]) => {
+		let sum = 0;
+		for (let i = 0; i < factors.length; i += 1) {
+			sum += Number(base[i]) * factors[i];
+		}
+		const mod = sum % 11;
+		return mod < 2 ? 0 : 11 - mod;
+	};
+
+	const base12 = digits.slice(0, 12);
+	const d1 = calc(base12, [5, 4, 3, 2, 9, 8, 7, 6, 5, 4, 3, 2]);
+	const base13 = base12 + String(d1);
+	const d2 = calc(base13, [6, 5, 4, 3, 2, 9, 8, 7, 6, 5, 4, 3, 2]);
+	return digits === base13 + String(d2);
+}
+
+function createDefaultValues(): EmitNfeFormValues {
+	return {
+		cnpjDestinatario: formatCnpj(SEED_CNPJ),
+		ieDestinatario: SEED_IE,
+		ufDestinatario: SEED_UF,
+		itens: [newItem()],
+	};
+}
 
 type EmitNfeModalProps = {
 	open: boolean;
@@ -46,48 +101,46 @@ type EmitNfeModalProps = {
 };
 
 export function EmitNfeModal({ open, onOpenChange, onSuccess }: EmitNfeModalProps) {
-	const [cnpjDestinatario, setCnpjDestinatario] = useState(SEED_CNPJ);
-	const [ieDestinatario, setIeDestinatario] = useState(SEED_IE);
-	const [ufDestinatario, setUfDestinatario] = useState(SEED_UF);
-	const [itens, setItens] = useState<ItemForm[]>(() => [newItem()]);
-	const [busy, setBusy] = useState(false);
 	const [formError, setFormError] = useState<string | null>(null);
 
+	const {
+		control,
+		register,
+		handleSubmit,
+		reset,
+		setValue,
+		formState: { errors, isSubmitting },
+	} = useForm<EmitNfeFormValues>({
+		defaultValues: createDefaultValues(),
+	});
+	const { fields, append, remove } = useFieldArray({
+		control,
+		name: 'itens',
+	});
+
 	const resetForm = useCallback(() => {
-		setCnpjDestinatario(SEED_CNPJ);
-		setIeDestinatario(SEED_IE);
-		setUfDestinatario(SEED_UF);
-		setItens([newItem()]);
+		reset(createDefaultValues());
 		setFormError(null);
-	}, []);
+	}, [reset, setFormError]);
 
 	const addItem = useCallback(() => {
-		setItens((prev) => [...prev, newItem()]);
-	}, []);
+		append(newItem());
+	}, [append]);
 
-	const removeItem = useCallback((key: string) => {
-		setItens((prev) => (prev.length <= 1 ? prev : prev.filter((i) => i.key !== key)));
-	}, []);
-
-	const updateItem = useCallback(
-		(key: string, patch: Partial<Omit<ItemForm, 'key'>>) => {
-			setItens((prev) =>
-				prev.map((i) => (i.key === key ? { ...i, ...patch } : i)),
-			);
-		},
-		[],
-	);
-
-	const handleSubmit = useCallback(async () => {
+	const onSubmit = useCallback(async (values: EmitNfeFormValues) => {
 		setFormError(null);
-		const built = buildCreateNfePayload(cnpjDestinatario, ieDestinatario, ufDestinatario, itens);
+		const built = buildCreateNfePayload(
+			values.cnpjDestinatario,
+			values.ieDestinatario,
+			values.ufDestinatario,
+			values.itens,
+		);
 		if (!built.ok) {
 			setFormError(built.error);
 			return;
 		}
 		const payload = built.payload;
 
-		setBusy(true);
 		try {
 			const res = await fetch('/api/nfe', {
 				method: 'POST',
@@ -109,18 +162,8 @@ export function EmitNfeModal({ open, onOpenChange, onSuccess }: EmitNfeModalProp
 			onSuccess?.();
 		} catch {
 			setFormError('Falha de rede ao emitir.');
-		} finally {
-			setBusy(false);
 		}
-	}, [
-		cnpjDestinatario,
-		ieDestinatario,
-		ufDestinatario,
-		itens,
-		onOpenChange,
-		onSuccess,
-		resetForm,
-	]);
+	}, [onOpenChange, onSuccess, resetForm, setFormError]);
 
 	return (
 		<Dialog
@@ -131,10 +174,11 @@ export function EmitNfeModal({ open, onOpenChange, onSuccess }: EmitNfeModalProp
 			}}
 		>
 			<DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-2xl">
+				<form onSubmit={handleSubmit(onSubmit)} className="grid gap-4">
 				<DialogHeader>
 					<DialogTitle>Nova NF-e</DialogTitle>
 					<DialogDescription>
-						Destinatário do seed ERP (CNPJ {SEED_CNPJ}) e produtos{' '}
+						Destinatário do seed ERP (CNPJ {formatCnpj(SEED_CNPJ)}) e produtos{' '}
 						<code className="text-violet-300">P001</code> /{' '}
 						<code className="text-violet-300">P002</code>. A nota entra na fila de
 						emissão após enviar.
@@ -145,29 +189,69 @@ export function EmitNfeModal({ open, onOpenChange, onSuccess }: EmitNfeModalProp
 					<div className="grid gap-4 sm:grid-cols-3">
 						<div className="space-y-2 sm:col-span-1">
 							<Label htmlFor="nfe-cnpj">CNPJ destinatário</Label>
-							<Input
-								id="nfe-cnpj"
-								value={cnpjDestinatario}
-								onChange={(e) => setCnpjDestinatario(e.target.value)}
-								autoComplete="off"
+							<Controller
+								control={control}
+								name="cnpjDestinatario"
+								rules={{
+									required: 'Informe o CNPJ do destinatário.',
+									validate: (value) =>
+										isValidCnpj(value) || 'Informe um CNPJ válido.',
+								}}
+								render={({ field }) => (
+									<Input
+										id="nfe-cnpj"
+										value={field.value}
+										onChange={(e) => field.onChange(formatCnpj(e.target.value))}
+										autoComplete="off"
+										placeholder="00.000.000/0000-00"
+										maxLength={CNPJ_MASKED_LENGTH}
+									/>
+								)}
 							/>
+							{errors.cnpjDestinatario ? (
+								<p className="text-xs text-rose-300" role="alert">
+									{errors.cnpjDestinatario.message}
+								</p>
+							) : null}
 						</div>
 						<div className="space-y-2">
 							<Label htmlFor="nfe-ie">IE</Label>
 							<Input
 								id="nfe-ie"
-								value={ieDestinatario}
-								onChange={(e) => setIeDestinatario(e.target.value)}
+								{...register('ieDestinatario', {
+									required: 'Informe a inscrição estadual.',
+									validate: (value) =>
+										value.trim().length > 0 ||
+										'Informe a inscrição estadual.',
+								})}
 							/>
+							{errors.ieDestinatario ? (
+								<p className="text-xs text-rose-300" role="alert">
+									{errors.ieDestinatario.message}
+								</p>
+							) : null}
 						</div>
 						<div className="space-y-2">
 							<Label htmlFor="nfe-uf">UF</Label>
 							<Input
 								id="nfe-uf"
-								value={ufDestinatario}
-								onChange={(e) => setUfDestinatario(e.target.value.toUpperCase())}
+								{...register('ufDestinatario', {
+									required: 'Informe a UF.',
+									pattern: {
+										value: /^[A-Za-z]{2}$/,
+										message: 'UF deve conter 2 letras.',
+									},
+									onChange: (e) => {
+										setValue('ufDestinatario', e.target.value.toUpperCase());
+									},
+								})}
 								maxLength={2}
 							/>
+							{errors.ufDestinatario ? (
+								<p className="text-xs text-rose-300" role="alert">
+									{errors.ufDestinatario.message}
+								</p>
+							) : null}
 						</div>
 					</div>
 
@@ -181,9 +265,9 @@ export function EmitNfeModal({ open, onOpenChange, onSuccess }: EmitNfeModalProp
 						</div>
 
 						<div className="space-y-3 rounded-lg border border-zinc-800 bg-zinc-900/40 p-3">
-							{itens.map((row, idx) => (
+							{fields.map((row, idx) => (
 								<div
-									key={row.key}
+									key={row.id}
 									className={cn(
 										'grid gap-3 border-b border-zinc-800 pb-3 last:border-0 last:pb-0 sm:grid-cols-12',
 									)}
@@ -194,50 +278,84 @@ export function EmitNfeModal({ open, onOpenChange, onSuccess }: EmitNfeModalProp
 									<div className="space-y-1 sm:col-span-2">
 										<span className="text-xs text-zinc-500">Produto</span>
 										<Input
-											value={row.codigoProduto}
-											onChange={(e) =>
-												updateItem(row.key, { codigoProduto: e.target.value })
-											}
+											{...register(`itens.${idx}.codigoProduto`, {
+												required: 'Informe o código do produto.',
+											})}
 											placeholder="P001"
 										/>
+										{errors.itens?.[idx]?.codigoProduto ? (
+											<p className="text-xs text-rose-300" role="alert">
+												{errors.itens[idx]?.codigoProduto?.message}
+											</p>
+										) : null}
 									</div>
 									<div className="space-y-1 sm:col-span-2">
 										<span className="text-xs text-zinc-500">Qtd</span>
 										<Input
-											value={row.quantidade}
-											onChange={(e) =>
-												updateItem(row.key, { quantidade: e.target.value })
-											}
+											{...register(`itens.${idx}.quantidade`, {
+												required: 'Informe a quantidade.',
+												validate: (value) =>
+													Number(String(value).replace(',', '.')) > 0 ||
+													'Quantidade deve ser maior que zero.',
+											})}
 										/>
+										{errors.itens?.[idx]?.quantidade ? (
+											<p className="text-xs text-rose-300" role="alert">
+												{errors.itens[idx]?.quantidade?.message}
+											</p>
+										) : null}
 									</div>
 									<div className="space-y-1 sm:col-span-2">
 										<span className="text-xs text-zinc-500">V. unit.</span>
 										<Input
-											value={row.valorUnitario}
-											onChange={(e) =>
-												updateItem(row.key, { valorUnitario: e.target.value })
-											}
+											{...register(`itens.${idx}.valorUnitario`, {
+												required: 'Informe o valor unitário.',
+												validate: (value) =>
+													Number(String(value).replace(',', '.')) > 0 ||
+													'Valor unitário deve ser maior que zero.',
+											})}
 										/>
+										{errors.itens?.[idx]?.valorUnitario ? (
+											<p className="text-xs text-rose-300" role="alert">
+												{errors.itens[idx]?.valorUnitario?.message}
+											</p>
+										) : null}
 									</div>
 									<div className="space-y-1 sm:col-span-2">
 										<span className="text-xs text-zinc-500">CFOP</span>
 										<Input
-											value={row.cfop}
-											onChange={(e) =>
-												updateItem(row.key, { cfop: e.target.value })
-											}
+											{...register(`itens.${idx}.cfop`, {
+												required: 'Informe o CFOP.',
+												pattern: {
+													value: /^\d{4}$/,
+													message: 'CFOP deve ter 4 dígitos.',
+												},
+											})}
 											maxLength={4}
 										/>
+										{errors.itens?.[idx]?.cfop ? (
+											<p className="text-xs text-rose-300" role="alert">
+												{errors.itens[idx]?.cfop?.message}
+											</p>
+										) : null}
 									</div>
 									<div className="space-y-1 sm:col-span-2">
 										<span className="text-xs text-zinc-500">CST</span>
 										<Input
-											value={row.cst}
-											onChange={(e) =>
-												updateItem(row.key, { cst: e.target.value })
-											}
+											{...register(`itens.${idx}.cst`, {
+												required: 'Informe o CST.',
+												pattern: {
+													value: /^\d{2,3}$/,
+													message: 'CST deve ter 2 ou 3 dígitos.',
+												},
+											})}
 											maxLength={3}
 										/>
+										{errors.itens?.[idx]?.cst ? (
+											<p className="text-xs text-rose-300" role="alert">
+												{errors.itens[idx]?.cst?.message}
+											</p>
+										) : null}
 									</div>
 									<div className="flex items-end justify-end sm:col-span-2">
 										<Button
@@ -245,8 +363,8 @@ export function EmitNfeModal({ open, onOpenChange, onSuccess }: EmitNfeModalProp
 											variant="ghost"
 											size="sm"
 											className="text-rose-400 hover:bg-rose-950/40 hover:text-rose-300"
-											disabled={itens.length <= 1}
-											onClick={() => removeItem(row.key)}
+											disabled={fields.length <= 1}
+											onClick={() => remove(idx)}
 											aria-label={`Remover item ${idx + 1}`}
 										>
 											<Trash2 className="size-4" />
@@ -271,15 +389,16 @@ export function EmitNfeModal({ open, onOpenChange, onSuccess }: EmitNfeModalProp
 					<Button
 						type="button"
 						variant="outline"
-						disabled={busy}
+						disabled={isSubmitting}
 						onClick={() => onOpenChange(false)}
 					>
 						Cancelar
 					</Button>
-					<Button type="button" disabled={busy} onClick={() => void handleSubmit()}>
-						{busy ? 'Emitindo…' : 'Emitir NF-e'}
+					<Button type="submit" disabled={isSubmitting}>
+						{isSubmitting ? 'Emitindo…' : 'Emitir NF-e'}
 					</Button>
 				</DialogFooter>
+				</form>
 			</DialogContent>
 		</Dialog>
 	);

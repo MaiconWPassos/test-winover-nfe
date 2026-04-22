@@ -9,6 +9,7 @@ import {
   UpdateDateColumn,
 } from 'typeorm';
 import { Customer } from '../../customers/entities/customer.entity';
+import { User } from '../../users/entities/user.entity';
 import { NfeItem } from './nfe-item.entity';
 import { NfeStatus } from './nfe-status.enum';
 
@@ -63,6 +64,13 @@ export class Nfe {
 
   @Column({ name: 'customer_id', type: 'uuid' })
   customerId: string;
+
+  @ManyToOne(() => User, { eager: false })
+  @JoinColumn({ name: 'user_id' })
+  user: User;
+
+  @Column({ name: 'user_id', type: 'uuid' })
+  userId: string;
 
   @OneToMany(() => NfeItem, (i) => i.nfe, { cascade: true, eager: true })
   items: NfeItem[];
